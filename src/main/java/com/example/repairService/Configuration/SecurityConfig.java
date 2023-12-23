@@ -19,7 +19,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, @Autowired AuthenticationConfiguration authenticationConfiguration) throws Exception {
         http.authorizeHttpRequests(request -> request
-                        .requestMatchers("/bucket/**").hasAuthority("USER")
+                        .requestMatchers("/booking/**").hasAuthority("USER")
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .anyRequest().permitAll())
                 .csrf(AbstractHttpConfigurer::disable)

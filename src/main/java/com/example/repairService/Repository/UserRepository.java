@@ -5,7 +5,10 @@ import com.example.repairService.Model.SystemUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -42,5 +45,27 @@ public class UserRepository {
         }
 
         return roles;
+    }
+
+    public String getCurrentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated())
+            return null;
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails) {
+            return ((UserDetails) principal).getUsername();
+        } else {
+            return principal.toString();
+        }
+    }
+
+    public long getCurrentUserId() {
+        String username = getCurrentUsername();
+        String sql = "Select \"id\" From \"USERS\" Where \"username\" = :USERNAME";
+        Map<String, String> param = new HashMap<>();
+        param.put("USERNAME", username);
+
+        return jdbcTemplate.queryForObject(sql, param, Long.class);
     }
 }
