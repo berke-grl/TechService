@@ -63,7 +63,7 @@ public class BookingRepository {
 
         params.put("NOTE", booking.getNote());
         params.put("BOOKING_DATE", date);
-        params.put("STATUS", booking.getStatus());
+        params.put("STATUS", "Bekliyor"); //according to the doc record must be bekliyor at the beginning
         params.put("SERVICE_ID", booking.getService_id());
         params.put("USER_ID", booking.getUser_id());
 
