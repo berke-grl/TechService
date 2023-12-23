@@ -33,4 +33,13 @@ public class AdminRepository {
         return jdbcTemplate.query(sql, param, BeanPropertyRowMapper.newInstance(Booking.class));
     }
 
+    public boolean changeStatus(long bookingId, Booking booking) {
+        String sql = "Update \"BOOKING\" Set \"status\" = :STATUS Where \"id\" = :ID";
+        Map<String, Object> params = new HashMap<>();
+
+        params.put("STATUS", booking.getStatus());
+        params.put("ID", bookingId);
+
+        return jdbcTemplate.update(sql, params) == 1;
+    }
 }
