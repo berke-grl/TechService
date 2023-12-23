@@ -7,24 +7,20 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Timestamp;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class BookingRepository {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
+    private final ServiceRepository serviceRepository;
 
     @Autowired
-    public BookingRepository(NamedParameterJdbcTemplate jdbcTemplate, UserRepository userRepository) {
+    public BookingRepository(NamedParameterJdbcTemplate jdbcTemplate, UserRepository userRepository, ServiceRepository serviceRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.userRepository = userRepository;
+        this.serviceRepository = serviceRepository;
     }
 
     public long getCurrentId() {
@@ -60,30 +56,62 @@ public class BookingRepository {
 
     public boolean save(Booking booking) throws ParseException {
 
+        Date date = getBookingDate(isAvailable(booking));
+
         String sql = "INSERT INTO \"BOOKING\"(\"note\", \"booking_date\", \"status\", \"service_id\", \"user_id\") VALUES (:NOTE, :BOOKING_DATE, :STATUS, :SERVICE_ID, :USER_ID)";
         Map<String, Object> params = new HashMap<>();
 
-        // Step 1: Get current LocalDateTime
-        LocalDateTime now = LocalDateTime.now();
-
-        // Step 2: Format LocalDateTime
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String formattedDateTime = now.format(formatter);
-
-        // Step 3: Parse the string back to a Date object
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        java.util.Date parsedDate = sdf.parse(formattedDateTime);
-
-        // Step 4: Convert Date to Timestamp for PostgreSQL
-        java.sql.Timestamp sqlTimestamp = new Timestamp(parsedDate.getTime());
-
         params.put("NOTE", booking.getNote());
-        params.put("BOOKING_DATE", sqlTimestamp);
+        params.put("BOOKING_DATE", date);
         params.put("STATUS", booking.getStatus());
         params.put("SERVICE_ID", booking.getService_id());
         params.put("USER_ID", booking.getUser_id());
 
         return jdbcTemplate.update(sql, params) == 1;
+    }
+
+    public int sumOfHours() {
+        String sql = "Select SUM(\"duration\") From \"SERVICE\" Inner Join \"BOOKING\" On \"BOOKING\".\"service_id\" = \"SERVICE\".\"id\" Where \"BOOKING\".\"booking_date\" = CURRENT_DATE";
+        Integer sum = jdbcTemplate.queryForObject(sql, new MapSqlParameterSource(), Integer.class);
+
+        if (sum == null) {
+            return 0; // Or handle null differently if required
+        }
+
+        return sum;
+    }
+
+    public boolean isAvailable(Booking booking) {
+        int currentBookingDuration = serviceRepository.getServiceById(booking.getService_id());
+        int totalBookingDurationInQueue = sumOfHours();
+
+        if (totalBookingDurationInQueue + currentBookingDuration > 10)
+            return false;
+        else
+            return true;
+    }
+
+    public Date getBookingDate(boolean isAvailable) {
+        if (isAvailable) {
+            return new Date();
+        } else {
+            // Current date
+            Date date = getSystemAvailableDate();
+            if (date == null)
+                date = new Date();
+            // Create a Calendar instance and set the time to the current date
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(date);
+            // Add one day
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+            // Get the updated date
+            return calendar.getTime();
+        }
+    }
+
+    public Date getSystemAvailableDate() {
+        String sql = "Select \"booking_date\" From \"BOOKING\" Order By \"booking_date\" Desc Limit 1";
+        return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource(), Date.class);
     }
 }
 

@@ -43,7 +43,6 @@ public class UserRepository {
         for (String role : list) {
             roles.add(new Role(role));
         }
-
         return roles;
     }
 
