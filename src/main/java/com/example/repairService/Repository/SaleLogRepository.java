@@ -20,7 +20,8 @@ public class SaleLogRepository {
         this.jdbcTemplate = jdbcTemplate;
         this.userRepository = userRepository;
     }
-
+/*
+burayı hocaya sor sale tablosunda silersem foregn key id diğer tabloda nasıl kullanııcak
     public boolean save(SaleLog saleLog) {
         String sql = "Insert Into \"SALE_LOG\"(\"sale_log_date\", \"credit_card\", \"sale_id\", \"user_id\") Values(:SALE_LOG_DATE, :CREDIT_CARD, :SALE_ID, :USER_ID)";
         Map<String, Object> params = new HashMap<>();
@@ -29,16 +30,18 @@ public class SaleLogRepository {
         params.put("SALE_ID", saleLog.getSale_id());
         params.put("USER_ID", userRepository.getCurrentUserId());
 
-        boolean result = jdbcTemplate.update(sql, params) == 1;
+        boolean isDeleted = deleteExistSale(saleLog.getSale_id());
+        if (isDeleted)
+            return jdbcTemplate.update(sql, params) == 1;
+        return false;
+    }
+    */
 
-        if (result) {
-            String sqlSale = "Delete From \"SALE\" Where \"id\" = :ID";
-            Map<String, Long> param = new HashMap<>();
-            param.put("ID", saleLog.getSale_id());
+    public boolean deleteExistSale(long id) {
+        String sqlSale = "Delete From \"SALE\" Where \"id\" = :ID";
+        Map<String, Long> param = new HashMap<>();
+        param.put("ID", id);
 
-            return jdbcTemplate.update(sqlSale, param) == 1;
-        } else {
-            return false;
-        }
+        return jdbcTemplate.update(sqlSale, param) == 1;
     }
 }

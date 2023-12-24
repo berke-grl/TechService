@@ -19,7 +19,7 @@ public class BuyController {
     public BuyController(SaleLogRepository saleLogRepository) {
         this.saleLogRepository = saleLogRepository;
     }
-
+/*
     @PostMapping("/product")
     public ResponseEntity<String> buyProduct(@RequestBody SaleLog saleLog) {
         boolean result = saleLogRepository.save(saleLog);
@@ -28,4 +28,5 @@ public class BuyController {
         else
             return ResponseEntity.internalServerError().build();
     }
+ */
 }
