@@ -18,7 +18,7 @@ public class ServiceRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public int getServiceById(long id) {
+    public int getServiceDurationById(long id) {
         String sql = "SELECT \"duration\" FROM \"SERVICE\" WHERE \"id\" = :ID";
         Map<String, Long> param = new HashMap<>();
         param.put("ID", id);

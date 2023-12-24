@@ -4,9 +4,7 @@ import com.example.repairService.Model.Sale;
 import com.example.repairService.Repository.SaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,5 +21,10 @@ public class SaleController {
     @GetMapping("/getAll")
     public ResponseEntity<List<Sale>> getAll() {
         return ResponseEntity.ok(saleRepository.getAll());
+    }
+
+    @GetMapping("/getAll/{product_name}")
+    public ResponseEntity<List<Sale>> getAll(@PathVariable String product_name) {
+        return ResponseEntity.ok(saleRepository.getSaleByProductName(product_name));
     }
 }

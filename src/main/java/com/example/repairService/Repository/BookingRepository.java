@@ -2,6 +2,7 @@ package com.example.repairService.Repository;
 
 import com.example.repairService.Model.Booking;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -24,7 +25,7 @@ public class BookingRepository {
     }
 
     public long getCurrentId() {
-        long numb = jdbcTemplate.queryForObject("Select COUNT(*) From \"BOOKING\"", new MapSqlParameterSource(), Long.class);
+        long numb = jdbcTemplate.queryForObject("Select \"id\" From \"BOOKING\" Order By \"id\" desc Limit 1", new MapSqlParameterSource(), Long.class);
         return numb++;
     }
 
@@ -56,7 +57,7 @@ public class BookingRepository {
 
     public boolean save(Booking booking) throws ParseException {
 
-        Date date = getBookingDate(isAvailable(booking));
+        Date date = getBookingDate(booking);
 
         String sql = "INSERT INTO \"BOOKING\"(\"note\", \"booking_date\", \"status\", \"service_id\", \"user_id\") VALUES (:NOTE, :BOOKING_DATE, :STATUS, :SERVICE_ID, :USER_ID)";
         Map<String, Object> params = new HashMap<>();
@@ -70,20 +71,22 @@ public class BookingRepository {
         return jdbcTemplate.update(sql, params) == 1;
     }
 
-    public int sumOfHours() {
-        String sql = "Select SUM(\"duration\") From \"SERVICE\" Inner Join \"BOOKING\" On \"BOOKING\".\"service_id\" = \"SERVICE\".\"id\" Where \"BOOKING\".\"booking_date\" = CURRENT_DATE";
-        Integer sum = jdbcTemplate.queryForObject(sql, new MapSqlParameterSource(), Integer.class);
+    public int sumOfHours(Date date) {
+        String sql = "Select SUM(\"duration\") From \"SERVICE\" Inner Join \"BOOKING\" On \"BOOKING\".\"service_id\" = \"SERVICE\".\"id\" Where \"BOOKING\".\"booking_date\" = :SYSTEM_DATE";
 
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+        parameters.addValue("SYSTEM_DATE", date); // Add the parameter to the MapSqlParameterSource
+
+        Integer sum = jdbcTemplate.queryForObject(sql, parameters, Integer.class); // Use the parameters object
         if (sum == null) {
             return 0; // Or handle null differently if required
         }
-
         return sum;
     }
 
-    public boolean isAvailable(Booking booking) {
-        int currentBookingDuration = serviceRepository.getServiceById(booking.getService_id());
-        int totalBookingDurationInQueue = sumOfHours();
+    public boolean isAvailable(Booking booking, Date date) {
+        int currentBookingDuration = serviceRepository.getServiceDurationById(booking.getService_id());
+        int totalBookingDurationInQueue = sumOfHours(date);
 
         if (totalBookingDurationInQueue + currentBookingDuration > 10)
             return false;
@@ -91,27 +94,28 @@ public class BookingRepository {
             return true;
     }
 
-    public Date getBookingDate(boolean isAvailable) {
-        if (isAvailable) {
-            return new Date();
-        } else {
-            // Current date
-            Date date = getSystemAvailableDate();
-            if (date == null)
-                date = new Date();
-            // Create a Calendar instance and set the time to the current date
-            Calendar calendar = Calendar.getInstance();
+    public Date getBookingDate(Booking booking) {
+        Date date = new Date(); // Start with the current date
+        Calendar calendar = Calendar.getInstance();
+
+        while (true) {
+            if (isAvailable(booking, date)) {
+                return date; // Return the date if it has enough available hours
+            }
             calendar.setTime(date);
-            // Add one day
-            calendar.add(Calendar.DAY_OF_MONTH, 1);
-            // Get the updated date
-            return calendar.getTime();
+            calendar.add(Calendar.DAY_OF_MONTH, 1); // Move to the next day
+            date = calendar.getTime();
         }
     }
 
+
     public Date getSystemAvailableDate() {
         String sql = "Select \"booking_date\" From \"BOOKING\" Order By \"booking_date\" Desc Limit 1";
-        return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource(), Date.class);
+        try {
+            return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource(), Date.class);
+        } catch (EmptyResultDataAccessException e) {
+            return new Date(); // Return current date if no rows are found
+        }
     }
 }
 

@@ -32,6 +32,15 @@ public class SaleRepository {
         return jdbcTemplate.queryForObject(sql, param, BeanPropertyRowMapper.newInstance(Sale.class));
     }
 
+    //SELECT name FROM public."PRODUCT" INNER Join public."SALE" ON "SALE".product_id = "PRODUCT".id WHERE "PRODUCT"."name" = 'Motherboard';
+    public List<Sale> getSaleByProductName(String product_name) {
+        String sql = "Select * From \"PRODUCT\" Inner Join \"SALE\" On \"SALE\".\"product_id\" = \"PRODUCT\".\"id\" Where \"PRODUCT\".\"name\" = :PRODUCT_NAME";
+        Map<String, String> param = new HashMap<>();
+        param.put("PRODUCT_NAME", product_name);
+
+        return jdbcTemplate.query(sql, param, BeanPropertyRowMapper.newInstance(Sale.class));
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public boolean deleteById(long id) {
         String sql = "Delete From \"SALE\" Where \"id\" = :ID";
@@ -40,7 +49,8 @@ public class SaleRepository {
 
         return jdbcTemplate.update(sql, param) == 1;
     }
-@PreAuthorize("hasRole('ADMIN')")
+
+    @PreAuthorize("hasRole('ADMIN')")
     public boolean save(Sale sale) {
         String sql = "Insert Into \"SALE\"(\"note\", \"price\", \"product_id\") Values(:NOTE, :PRICE, :PRODUCT_ID)";
         Map<String, Object> params = new HashMap<>();
